@@ -37,6 +37,7 @@
     <h1>JAVS Household Dashboard</h1>
     <div class="sub">Viral &middot; Ami &middot; Jaivik (7) &middot; Saira (4) &mdash; Ashburn, VA</div>
     <div class="sub" id="snapshotLine">Snapshot: loading&hellip;</div>
+    <div style="margin-top:10px"><button id="addEventBtn" style="font-size:17px;padding:10px 16px;border-radius:999px;border:0;background:#fbbf24;color:#111827;font-weight:700;cursor:pointer">+ Add new event</button></div>
   </div>
   <div>
     <div id="clock">--:--</div>
@@ -46,6 +47,18 @@
 </header>
 
 <main class="grid" id="grid"></main>
+
+<section id="eventForm" style="display:none;margin:0 28px 28px;background:#1e293b;border-radius:16px;padding:18px 20px">
+  <h2 style="margin:0 0 10px;font-size:19px;text-transform:uppercase;letter-spacing:.04em;color:#fbbf24">Add new event — Our Shared Calendar</h2>
+  <p style="font-size:17px;line-height:1.45;margin:8px 0">This static version opens Google Calendar with the event prefilled and tagged <b>Dashboard Added</b>. Pick <b>Our Shared Calendar</b> in the calendar form before saving — the static page cannot choose the calendar for you. The interactive Muse version writes directly to Our Shared Calendar.</p>
+  <label style="display:block;font-size:17px;margin:8px 0">Title<br><input id="evTitle" style="width:100%;font-size:18px;padding:8px;border-radius:8px;border:0" placeholder="e.g. Jaivik dentist"></label>
+  <label style="display:block;font-size:17px;margin:8px 0">Date<br><input id="evDate" type="date" style="font-size:18px;padding:8px;border-radius:8px;border:0"></label>
+  <label style="display:block;font-size:17px;margin:8px 0">Start<br><input id="evStart" type="time" value="17:00" style="font-size:18px;padding:8px;border-radius:8px;border:0"></label>
+  <label style="display:block;font-size:17px;margin:8px 0">End<br><input id="evEnd" type="time" value="18:00" style="font-size:18px;padding:8px;border-radius:8px;border:0"></label>
+  <label style="display:block;font-size:17px;margin:8px 0">Where / details<br><input id="evDetails" style="width:100%;font-size:18px;padding:8px;border-radius:8px;border:0" placeholder="Location or notes"></label>
+  <div style="margin-top:12px"><button id="evCreate" style="font-size:17px;padding:10px 16px;border-radius:999px;border:0;background:#fbbf24;color:#111827;font-weight:700;cursor:pointer">Open in Google Calendar</button>
+  <button id="evCancel" style="font-size:17px;padding:10px 16px;border-radius:999px;border:1px solid #64748b;background:transparent;color:#f8fafc;cursor:pointer;margin-left:8px">Cancel</button></div>
+</section>
 
 <footer id="footer"></footer>
 
@@ -106,6 +119,18 @@ function render(d){
   const show = () => { const s = d.slideshow[i % d.slideshow.length]; document.getElementById("slideTitle").textContent = s.title; document.getElementById("slideSub").textContent = s.sub; i++; };
   show(); setInterval(show, 15000);
 }
+document.getElementById("addEventBtn").addEventListener("click",()=>{document.getElementById("eventForm").style.display="block";document.getElementById("eventForm").scrollIntoView();});
+document.getElementById("evCancel").addEventListener("click",()=>{document.getElementById("eventForm").style.display="none";});
+document.getElementById("evCreate").addEventListener("click",()=>{
+  const title=document.getElementById("evTitle").value.trim(); const date=document.getElementById("evDate").value;
+  const start=document.getElementById("evStart").value||"17:00"; const end=document.getElementById("evEnd").value||"18:00";
+  if(!title||!date){alert("Add a title and a date first.");return;}
+  const fmt=(d)=>d.toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  const dates=fmt(new Date(date+"T"+start))+ "/" + fmt(new Date(date+"T"+end));
+  const details="[Dashboard Added] Added via JAVS Household Screen Dashboard.\n"+document.getElementById("evDetails").value;
+  const url="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(title)+"&dates="+encodeURIComponent(dates)+"&details="+encodeURIComponent(details);
+  window.open(url,"_blank");
+});
 function tick(){
   const now = new Date();
   document.getElementById("clock").textContent = now.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
