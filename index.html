@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JAVS Household Screen Dashboard</title>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--card2:#243349;--ink:#f8fafc;--muted:#cbd5e1;--accent:#fbbf24;--green:#34d399;--blue:#60a5fa;--pink:#f472b6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:20px 28px 8px;flex-wrap:wrap}
+  h1{font-size:34px;margin:0;line-height:1.1}
+  .sub{color:var(--muted);font-size:17px;margin-top:6px}
+  #clock{font-size:44px;font-weight:800;text-align:right;line-height:1}
+  #dateLine{color:var(--muted);font-size:18px;text-align:right;margin-top:4px}
+  .weather{font-size:19px;margin-top:8px;text-align:right}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 28px 28px}
+  .card{background:var(--card);border-radius:16px;padding:18px 20px;min-height:150px}
+  .card h2{font-size:19px;margin:0 0 10px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+  .card ul{margin:0;padding-left:20px;font-size:19px;line-height:1.45}
+  .card li{margin:7px 0}
+  .card p{font-size:19px;line-height:1.45;margin:8px 0}
+  .big{font-size:24px;font-weight:700;line-height:1.3}
+  .muted{color:var(--muted)}
+  .tag{display:inline-block;background:#334155;border-radius:999px;padding:3px 10px;font-size:15px;margin-right:6px}
+  .wide{grid-column:span 2}
+  .slideshow{height:220px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#db2777,#f59e0b);display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+  .slideshow .slideTitle{font-size:32px;font-weight:800;line-height:1.2}
+  .slideshow .slideSub{font-size:19px;margin-top:8px}
+  footer{padding:0 28px 24px;color:var(--muted);font-size:15px;line-height:1.5}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}h1{font-size:28px}#clock{font-size:34px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>JAVS Household Dashboard</h1>
+    <div class="sub">Viral &middot; Ami &middot; Jaivik (7) &middot; Saira (4) &mdash; Ashburn, VA</div>
+    <div class="sub" id="snapshotLine">Snapshot: loading&hellip;</div>
+  </div>
+  <div>
+    <div id="clock">--:--</div>
+    <div id="dateLine"></div>
+    <div class="weather" id="weatherLine"></div>
+  </div>
+</header>
+
+<main class="grid" id="grid"></main>
+
+<footer id="footer"></footer>
+
+<script>
+const FALLBACK = {
+  "snapshot_generated": "2026-11-04T13:00:00-05:00",
+  "snapshot_label": "Snapshot generated Nov 4, 2026, about 1:00 PM ET. Not live data.",
+  "weather": {"now": "76\u00b0F, sunny", "high_low": "High 77\u00b0F / Low 65\u00b0F", "sunset": "Sunset 5:05 PM", "tonight": "Rain late tonight; showers Thursday morning."},
+  "today": [
+    {"time": "All day", "title": "Quarter 2 starts at school"},
+    {"time": "11:00 AM \u2013 7:00 PM", "title": "IKEA pickup, Chantilly \u2014 2 BEST\u00c5 rails. Status at 12:34 PM: being packed. Wait for the ready email before going."},
+    {"time": "5:00 \u2013 7:00 PM", "title": "Math Kangaroo prep \u2014 Session 6 (at home)"}
+  ],
+  "week": [
+    {"day": "Thu Nov 5", "title": "Rain / showers in the morning. Veterans Day RSVP check in the evening."},
+    {"day": "Fri Nov 6", "title": "Veterans Day photo / RSVP due."},
+    {"day": "Sun Nov 8", "title": "Diwali Get-Together at Usha & Sameer's, 8:00\u20139:30 PM."},
+    {"day": "Tue Nov 11", "title": "Veterans Day program, 8:45 AM \u2014 wear red, white & blue. Math Kangaroo dress rehearsal in the evening."},
+    {"day": "Sat Nov 14", "title": "Math Kangaroo competition, 3:30\u20134:30 PM, Glen Mills, PA."},
+    {"day": "Sun Nov 15", "title": "Winter Music Recital, 12:00\u20131:30 PM, South Riding."},
+    {"day": "Sat Nov 21", "title": "Bowling party, 12:00\u20132:00 PM, Burke. Satyanarayan Katha & Puja, 5:00 PM, Ashburn."},
+    {"day": "Sun Dec 13", "title": "Winter Dance Recital, 12:30\u20134:30 PM, Chantilly."}
+  ],
+  "meals": {"tonight": "South Indian night (template: dosa / idli style). Exact dish not confirmed in the snapshot.", "template": "Mon: roti, shaak, dal, bhaat \u00b7 Tue: Mexican \u00b7 Wed/Thu: South Indian \u00b7 Fri: flexible / leftovers. Lunches: salads Mon/Wed, smoothies Tue/Thu.", "household": "Planning for 6 until Nov 16, then 4 (Viral, Ami, Jaivik, Saira)."},
+  "shopping": "Weekly shopping list is filled by the Wednesday grocery snapshot. No list in this early build \u2014 see the Meals and Grocery chat for this week's list.",
+  "school": "No school heads-up confirmed for tomorrow yet. NGAT testing window for 2nd graders runs Nov 4\u201324; Rosa Lee Carter's exact dates are still TBD \u2014 the nightly scan watches for them.",
+  "reminders": [
+    "Return 'Go, Otto, go!' to the library before Nov 10.",
+    "Veterans Day photo / RSVP due Fri Nov 6.",
+    "Annual physical: Mon Nov 23, 8:30 AM, Leesburg / Broadlands."
+  ],
+  "kids": {"countdown": "Math Kangaroo: 10 days to go (Sat Nov 14).", "items": ["Prep today 5\u20137 PM \u2014 Session 6, group practice, no break, stamina through Q17\u201324.", "Dress rehearsal: Wed Nov 11.", "Music recital Nov 15 \u00b7 Dance recital Dec 13."]},
+  "smart_home": "No smart-home devices connected to this dashboard yet. Tell Muse what you have (doorbell, lights, thermostat, etc.) and how it is controlled, and this card will show its status.",
+  "slideshow": [
+    {"title": "Family photos", "sub": "Curated set pending. Google Photos cannot feed this screen live \u2014 photos will be added as a downloaded set."},
+    {"title": "5 of 64 national parks", "sub": "Shenandoah \u00b7 Rocky Mountain \u00b7 Great Smoky Mountains \u00b7 Haleakala \u00b7 New River Gorge"},
+    {"title": "Diwali \u2014 Sun Nov 8", "sub": "Get-together in the evening. Diwali gold purchase for 2026 is done."}
+  ]
+};
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function render(d){
+  document.getElementById("snapshotLine").textContent = d.snapshot_label;
+  document.getElementById("weatherLine").textContent = d.weather.now + " \u00b7 " + d.weather.high_low + " \u00b7 " + d.weather.sunset;
+  const g = document.getElementById("grid");
+  g.innerHTML = `
+  <section class="card"><h2>Today \u2014 Wed Nov 4</h2><ul>${d.today.map(e=>`<li><b>${esc(e.time)}</b> \u2014 ${esc(e.title)}</li>`).join("")}</ul><p class="muted">${esc(d.weather.tonight)}</p></section>
+  <section class="card"><h2>Tonight's dinner</h2><p class="big">${esc(d.meals.tonight)}</p><p class="muted">${esc(d.meals.template)}</p><p class="muted">${esc(d.meals.household)}</p></section>
+  <section class="card"><h2>School heads-up</h2><p>${esc(d.school)}</p></section>
+  <section class="card wide"><h2>This week &amp; ahead</h2><ul>${d.week.map(e=>`<li><b>${esc(e.day)}</b> \u2014 ${esc(e.title)}</li>`).join("")}</ul></section>
+  <section class="card"><h2>Reminders</h2><ul>${d.reminders.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></section>
+  <section class="card"><h2>Kids corner</h2><p class="big">${esc(d.kids.countdown)}</p><ul>${d.kids.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></section>
+  <section class="card"><h2>Shopping list</h2><p>${esc(d.shopping)}</p></section>
+  <section class="card"><h2>Smart home</h2><p>${esc(d.smart_home)}</p></section>
+  <section class="card wide"><h2>Family slideshow</h2><div class="slideshow" id="slideshow"><div><div class="slideTitle" id="slideTitle"></div><div class="slideSub" id="slideSub"></div></div></div><p class="muted">Rotates every 15 seconds. No live Google Photos feed.</p></section>`;
+  document.getElementById("footer").textContent = d.snapshot_label + " Calendar: Our Shared Calendar snapshot. Meals: weekly template snapshot. School: nightly scan snapshot. Refresh this page after a new snapshot is generated \u2014 it does not update itself.";
+  let i = 0;
+  const show = () => { const s = d.slideshow[i % d.slideshow.length]; document.getElementById("slideTitle").textContent = s.title; document.getElementById("slideSub").textContent = s.sub; i++; };
+  show(); setInterval(show, 15000);
+}
+function tick(){
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+  document.getElementById("dateLine").textContent = now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+}
+tick(); setInterval(tick, 20000);
+fetch("data.json").then(r=>{if(!r.ok) throw new Error("no data.json"); return r.json();}).then(render).catch(()=>render(FALLBACK));
+</script>
+</body>
+</html>
