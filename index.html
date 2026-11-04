@@ -67,23 +67,20 @@ const FALLBACK = {
   "snapshot_generated": "2026-11-04T13:00:00-05:00",
   "snapshot_label": "Snapshot generated Nov 4, 2026, about 1:00 PM ET. Not live data.",
   "weather": {"now": "76\u00b0F, sunny", "high_low": "High 77\u00b0F / Low 65\u00b0F", "sunset": "Sunset 5:05 PM", "tonight": "Rain late tonight; showers Thursday morning."},
-  "today": [
-    {"time": "All day", "title": "Quarter 2 starts at school"},
-    {"time": "11:00 AM \u2013 7:00 PM", "title": "IKEA pickup, Chantilly \u2014 2 BEST\u00c5 rails. Status at 12:34 PM: being packed. Wait for the ready email before going."},
-    {"time": "5:00 \u2013 7:00 PM", "title": "Math Kangaroo prep \u2014 Session 6 (at home)"}
+  "next7": [
+    {"day": "Wed Nov 4", "items": [
+      {"time": "All day", "title": "Quarter 2 starts at school"},
+      {"time": "11:00 AM \u2013 7:00 PM", "title": "IKEA pickup, Chantilly \u2014 2 BEST\u00c5 rails. Status at 12:34 PM: being packed. Wait for the ready email before going."},
+      {"time": "5:00 \u2013 7:00 PM", "title": "Math Kangaroo prep \u2014 Session 6 (at home)"}
+    ]},
+    {"day": "Thu Nov 5", "items": [{"time": "", "title": "Rain / showers in the morning. Veterans Day RSVP check in the evening."}]},
+    {"day": "Fri Nov 6", "items": [{"time": "", "title": "Veterans Day photo / RSVP due."}]},
+    {"day": "Sun Nov 8", "items": [{"time": "8:00 \u2013 9:30 PM", "title": "Diwali Get-Together at Usha & Sameer's."}]}
   ],
-  "week": [
-    {"day": "Thu Nov 5", "title": "Rain / showers in the morning. Veterans Day RSVP check in the evening."},
-    {"day": "Fri Nov 6", "title": "Veterans Day photo / RSVP due."},
-    {"day": "Sun Nov 8", "title": "Diwali Get-Together at Usha & Sameer's, 8:00\u20139:30 PM."},
-    {"day": "Tue Nov 11", "title": "Veterans Day program, 8:45 AM \u2014 wear red, white & blue. Math Kangaroo dress rehearsal in the evening."},
-    {"day": "Sat Nov 14", "title": "Math Kangaroo competition, 3:30\u20134:30 PM, Glen Mills, PA."},
-    {"day": "Sun Nov 15", "title": "Winter Music Recital, 12:00\u20131:30 PM, South Riding."},
-    {"day": "Sat Nov 21", "title": "Bowling party, 12:00\u20132:00 PM, Burke. Satyanarayan Katha & Puja, 5:00 PM, Ashburn."},
-    {"day": "Sun Dec 13", "title": "Winter Dance Recital, 12:30\u20134:30 PM, Chantilly."}
-  ],
+  "notes": [],
+  "grocery": [],
+  "grocery_note": "Add items below \u2014 saved on this screen only. The Wednesday grocery snapshot fills the weekly list in the Meals and Grocery chat.",
   "meals": {"tonight": "South Indian night (template: dosa / idli style). Exact dish not confirmed in the snapshot.", "template": "Mon: roti, shaak, dal, bhaat \u00b7 Tue: Mexican \u00b7 Wed/Thu: South Indian \u00b7 Fri: flexible / leftovers. Lunches: salads Mon/Wed, smoothies Tue/Thu.", "household": "Planning for 6 until Nov 16, then 4 (Viral, Ami, Jaivik, Saira)."},
-  "shopping": "Weekly shopping list is filled by the Wednesday grocery snapshot. No list in this early build \u2014 see the Meals and Grocery chat for this week's list.",
   "school": "No school heads-up confirmed for tomorrow yet. NGAT testing window for 2nd graders runs Nov 4\u201324; Rosa Lee Carter's exact dates are still TBD \u2014 the nightly scan watches for them.",
   "reminders": [
     "Return 'Go, Otto, go!' to the library before Nov 10.",
@@ -100,20 +97,35 @@ const FALLBACK = {
 };
 
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function loadList(key,seed){try{const v=JSON.parse(localStorage.getItem(key)||"null");return Array.isArray(v)?v:(seed||[]);}catch(e){return seed||[];}}
+function setupLists(d){
+  const wire=(key,listId,inputId,addId,seed)=>{
+    let items=loadList(key,seed);
+    const list=document.getElementById(listId); const input=document.getElementById(inputId);
+    const draw=()=>{list.innerHTML=items.map((it,idx)=>`<li>${esc(it)} <button data-idx="${idx}" style="font-size:15px;padding:2px 10px;border-radius:999px;border:1px solid #64748b;background:transparent;color:#f8fafc;cursor:pointer">Remove</button></li>`).join("")||"<li class='muted'>Nothing yet.</li>";
+      list.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{items.splice(Number(b.dataset.idx),1);localStorage.setItem(key,JSON.stringify(items));draw();}));};
+    document.getElementById(addId).addEventListener("click",()=>{const v=input.value.trim();if(!v)return;items.push(v);localStorage.setItem(key,JSON.stringify(items));input.value="";draw();});
+    input.addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById(addId).click();});
+    draw();
+  };
+  wire("javs_notes","notesList","noteInput","noteAdd",d.notes);
+  wire("javs_grocery","groceryList","groceryInput","groceryAdd",d.grocery);
+}
 function render(d){
   document.getElementById("snapshotLine").textContent = d.snapshot_label;
   document.getElementById("weatherLine").textContent = d.weather.now + " \u00b7 " + d.weather.high_low + " \u00b7 " + d.weather.sunset;
   const g = document.getElementById("grid");
   g.innerHTML = `
-  <section class="card"><h2>Today \u2014 Wed Nov 4</h2><ul>${d.today.map(e=>`<li><b>${esc(e.time)}</b> \u2014 ${esc(e.title)}</li>`).join("")}</ul><p class="muted">${esc(d.weather.tonight)}</p></section>
+  <section class="card wide"><h2>Next 7 days</h2>${d.next7.map(day=>`<p style="margin:10px 0 4px"><b>${esc(day.day)}</b></p><ul>${day.items.map(e=>`<li>${e.time?`<b>${esc(e.time)}</b> \u2014 `:""}${esc(e.title)}</li>`).join("")}</ul>`).join("")}<p style="margin-top:12px"><button onclick="document.getElementById('eventForm').style.display='block';document.getElementById('eventForm').scrollIntoView()" style="font-size:17px;padding:10px 16px;border-radius:999px;border:0;background:#fbbf24;color:#111827;font-weight:700;cursor:pointer">+ Add new event</button></p><p class="muted">${esc(d.weather.tonight)}</p></section>
   <section class="card"><h2>Tonight's dinner</h2><p class="big">${esc(d.meals.tonight)}</p><p class="muted">${esc(d.meals.template)}</p><p class="muted">${esc(d.meals.household)}</p></section>
   <section class="card"><h2>School heads-up</h2><p>${esc(d.school)}</p></section>
-  <section class="card wide"><h2>This week &amp; ahead</h2><ul>${d.week.map(e=>`<li><b>${esc(e.day)}</b> \u2014 ${esc(e.title)}</li>`).join("")}</ul></section>
+  <section class="card"><h2>Notes</h2><p class="muted" style="font-size:16px">Things to remember. Saved on this screen only.</p><ul id="notesList"></ul><input id="noteInput" style="width:100%;font-size:18px;padding:8px;border-radius:8px;border:0;margin-top:8px" placeholder="Add a note\u2026"><button id="noteAdd" style="font-size:17px;padding:8px 16px;border-radius:999px;border:0;background:#fbbf24;color:#111827;font-weight:700;cursor:pointer;margin-top:8px">Add note</button></section>
+  <section class="card"><h2>Grocery list</h2><p class="muted" style="font-size:16px">${esc(d.grocery_note||"Saved on this screen only.")}</p><ul id="groceryList"></ul><input id="groceryInput" style="width:100%;font-size:18px;padding:8px;border-radius:8px;border:0;margin-top:8px" placeholder="Add an item\u2026"><button id="groceryAdd" style="font-size:17px;padding:8px 16px;border-radius:999px;border:0;background:#fbbf24;color:#111827;font-weight:700;cursor:pointer;margin-top:8px">Add item</button></section>
   <section class="card"><h2>Reminders</h2><ul>${d.reminders.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></section>
   <section class="card"><h2>Kids corner</h2><p class="big">${esc(d.kids.countdown)}</p><ul>${d.kids.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul></section>
-  <section class="card"><h2>Shopping list</h2><p>${esc(d.shopping)}</p></section>
   <section class="card"><h2>Smart home</h2><p>${esc(d.smart_home)}</p></section>
   <section class="card wide"><h2>Family slideshow</h2><div class="slideshow" id="slideshow"><div><div class="slideTitle" id="slideTitle"></div><div class="slideSub" id="slideSub"></div></div></div><p class="muted">Rotates every 15 seconds. No live Google Photos feed.</p></section>`;
+  setupLists(d);
   document.getElementById("footer").textContent = d.snapshot_label + " Calendar: Our Shared Calendar snapshot. Meals: weekly template snapshot. School: nightly scan snapshot. Refresh this page after a new snapshot is generated \u2014 it does not update itself.";
   let i = 0;
   const show = () => { const s = d.slideshow[i % d.slideshow.length]; document.getElementById("slideTitle").textContent = s.title; document.getElementById("slideSub").textContent = s.sub; i++; };
